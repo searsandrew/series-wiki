@@ -2,4 +2,4 @@
 
 use Searsandrew\SeriesWiki\Tests\TestCase;
 
-uses(TestCase::class)->in('tests');
+uses(TestCase::class)->in(__DIR__);
