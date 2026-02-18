@@ -5,6 +5,8 @@ namespace Searsandrew\SeriesWiki;
 use Illuminate\Support\ServiceProvider;
 use Searsandrew\SeriesWiki\Services\EntryRenderer;
 use Searsandrew\SeriesWiki\Services\GateAccess;
+use Searsandrew\SeriesWiki\Services\GateSeederService;
+use Searsandrew\SeriesWiki\Services\ProgressService;
 
 class SeriesWikiServiceProvider extends ServiceProvider
 {
@@ -14,6 +16,9 @@ class SeriesWikiServiceProvider extends ServiceProvider
 
         $this->app->singleton(GateAccess::class);
         $this->app->singleton(EntryRenderer::class);
+
+        $this->app->singleton(ProgressService::class);
+        $this->app->singleton(GateSeederService::class);
     }
 
     public function boot(): void
