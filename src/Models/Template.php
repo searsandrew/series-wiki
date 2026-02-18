@@ -7,23 +7,27 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Entry extends Model
+class Template extends Model
 {
     use HasUlids;
 
-    protected $table = 'sw_entries';
+    protected $table = 'sw_templates';
 
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
         'series_id',
-        'template_id',
         'slug',
-        'title',
-        'type',
-        'status',
-        'summary',
+        'name',
+        'entry_type',
+        'is_default',
+        'settings',
+    ];
+
+    protected $casts = [
+        'is_default' => 'bool',
+        'settings' => 'array',
     ];
 
     public function series(): BelongsTo
@@ -31,13 +35,8 @@ class Entry extends Model
         return $this->belongsTo(Series::class, 'series_id');
     }
 
-    public function template(): BelongsTo
+    public function sections(): HasMany
     {
-        return $this->belongsTo(Template::class, 'template_id');
-    }
-
-    public function blocks(): HasMany
-    {
-        return $this->hasMany(EntryBlock::class, 'entry_id')->orderBy('sort');
+        return $this->hasMany(TemplateSection::class, 'template_id')->orderBy('sort');
     }
 }

@@ -7,6 +7,8 @@ use Searsandrew\SeriesWiki\Services\EntryRenderer;
 use Searsandrew\SeriesWiki\Services\GateAccess;
 use Searsandrew\SeriesWiki\Services\GateSeederService;
 use Searsandrew\SeriesWiki\Services\ProgressService;
+use Searsandrew\SeriesWiki\Services\TemplateApplier;
+use Searsandrew\SeriesWiki\Services\TemplateResolver;
 
 class SeriesWikiServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,9 @@ class SeriesWikiServiceProvider extends ServiceProvider
 
         $this->app->singleton(ProgressService::class);
         $this->app->singleton(GateSeederService::class);
+
+        $this->app->singleton(TemplateResolver::class);
+        $this->app->singleton(TemplateApplier::class);
     }
 
     public function boot(): void
