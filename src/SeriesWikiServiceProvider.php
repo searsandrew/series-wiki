@@ -10,6 +10,9 @@ use Searsandrew\SeriesWiki\Services\GateSeederService;
 use Searsandrew\SeriesWiki\Services\ProgressService;
 use Searsandrew\SeriesWiki\Services\TemplateApplier;
 use Searsandrew\SeriesWiki\Services\TemplateResolver;
+use Searsandrew\SeriesWiki\Services\Timeline\TimeSliceMatcher;
+use Searsandrew\SeriesWiki\Services\Variants\VariantComposer;
+use Searsandrew\SeriesWiki\Services\Variants\VariantResolver;
 
 class SeriesWikiServiceProvider extends ServiceProvider
 {
@@ -19,13 +22,18 @@ class SeriesWikiServiceProvider extends ServiceProvider
 
         $this->app->singleton(GateAccess::class);
         $this->app->singleton(EntryRenderer::class);
-        $this->app->singleton(EntryCreator::class);
 
         $this->app->singleton(ProgressService::class);
         $this->app->singleton(GateSeederService::class);
 
         $this->app->singleton(TemplateResolver::class);
         $this->app->singleton(TemplateApplier::class);
+
+        $this->app->singleton(EntryCreator::class);
+
+        $this->app->singleton(TimeSliceMatcher::class);
+        $this->app->singleton(VariantResolver::class);
+        $this->app->singleton(VariantComposer::class);
     }
 
     public function boot(): void

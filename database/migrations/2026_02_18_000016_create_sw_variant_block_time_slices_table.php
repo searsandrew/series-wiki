@@ -8,14 +8,10 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('sw_variant_block_time_slices', function (Blueprint $table) {
-            $table->ulid('id')->primary();
-
             $table->foreignUlid('variant_block_id')->constrained('sw_variant_blocks')->cascadeOnDelete();
             $table->foreignUlid('time_slice_id')->constrained('sw_time_slices')->cascadeOnDelete();
 
-            $table->timestamps();
-
-            $table->unique(['variant_block_id', 'time_slice_id']);
+            $table->primary(['variant_block_id', 'time_slice_id']);
             $table->index(['time_slice_id', 'variant_block_id']);
         });
     }
