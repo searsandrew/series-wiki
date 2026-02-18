@@ -8,14 +8,13 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('sw_works', function (Blueprint $table) {
-            $table->id();
-            $table->ulid('ulid')->unique();
+            $table->ulid('id')->primary();
 
-            $table->foreignId('series_id')->constrained('sw_series')->cascadeOnDelete();
+            $table->foreignUlid('series_id')->constrained('sw_series')->cascadeOnDelete();
 
             $table->string('slug')->index();
             $table->string('title');
-            $table->string('kind')->default('book'); // book, novella, short, etc.
+            $table->string('kind')->default('book'); // book/novella/short/etc
 
             $table->timestamps();
 

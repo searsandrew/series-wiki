@@ -1,44 +1,37 @@
 <?php
 
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Foundation\Auth\User as AuthenticatableUser;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Searsandrew\SeriesWiki\Models\Entry;
 use Searsandrew\SeriesWiki\Models\EntryBlock;
 use Searsandrew\SeriesWiki\Models\Gate;
+use Searsandrew\SeriesWiki\Models\Series;
 use Searsandrew\SeriesWiki\Models\UserWorkProgress;
 use Searsandrew\SeriesWiki\Models\Work;
 use Searsandrew\SeriesWiki\Services\EntryRenderer;
 
 class FakeUser2 extends AuthenticatableUser
 {
+    use HasUlids;
+
     protected $table = 'users';
+
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $guarded = [];
 }
-
-beforeEach(function () {
-    if (!Schema::hasTable('users')) {
-        Schema::create('users', function ($t) {
-            $t->id();
-            $t->string('name')->nullable();
-            $t->timestamps();
-        });
-    }
-});
 
 it('renders safe body when locked (safe mode)', function () {
     $user = FakeUser2::query()->create(['name' => 'Reader']);
 
-    $seriesId = DB::table('sw_series')->insertGetId([
-        'ulid' => (string) \Illuminate\Support\Str::ulid(),
+    $series = Series::create([
         'slug' => 'stellar-empire',
         'name' => 'Stellar Empire',
-        'created_at' => now(),
-        'updated_at' => now(),
     ]);
 
     $work = Work::create([
-        'series_id' => $seriesId,
+        'series_id' => $series->id,
         'slug' => 'bones-that-remember',
         'title' => 'The Bones That Remember',
         'kind' => 'novella',
@@ -51,18 +44,15 @@ it('renders safe body when locked (safe mode)', function () {
         'label' => 'Chapter 1',
     ]);
 
-    $entryId = DB::table('sw_entries')->insertGetId([
-        'series_id' => $seriesId,
+    $entry = Entry::create([
+        'series_id' => $series->id,
         'slug' => 'ogris',
         'title' => 'Ogris',
         'type' => 'species',
-        'created_at' => now(),
-        'updated_at' => now(),
+        'status' => 'published',
     ]);
 
-    $entry = Entry::query()->findOrFail($entryId);
-
-    EntryBlock::query()->create([
+    EntryBlock::create([
         'entry_id' => $entry->id,
         'key' => 'history',
         'format' => 'markdown',
@@ -73,7 +63,6 @@ it('renders safe body when locked (safe mode)', function () {
         'sort' => 0,
     ]);
 
-    // No progress → locked
     $renderer = app(EntryRenderer::class);
     $rendered = $renderer->render($entry, $user);
 
@@ -85,16 +74,13 @@ it('renders safe body when locked (safe mode)', function () {
 it('renders full body when unlocked', function () {
     $user = FakeUser2::query()->create(['name' => 'Reader']);
 
-    $seriesId = DB::table('sw_series')->insertGetId([
-        'ulid' => (string) \Illuminate\Support\Str::ulid(),
+    $series = Series::create([
         'slug' => 'stellar-empire',
         'name' => 'Stellar Empire',
-        'created_at' => now(),
-        'updated_at' => now(),
     ]);
 
     $work = Work::create([
-        'series_id' => $seriesId,
+        'series_id' => $series->id,
         'slug' => 'bones-that-remember',
         'title' => 'The Bones That Remember',
         'kind' => 'novella',
@@ -108,23 +94,20 @@ it('renders full body when unlocked', function () {
     ]);
 
     UserWorkProgress::create([
-        'user_id' => $user->id,
+        'user_id' => (string) $user->getAuthIdentifier(),
         'work_id' => $work->id,
         'max_gate_position' => 1,
     ]);
 
-    $entryId = DB::table('sw_entries')->insertGetId([
-        'series_id' => $seriesId,
+    $entry = Entry::create([
+        'series_id' => $series->id,
         'slug' => 'ogris',
         'title' => 'Ogris',
         'type' => 'species',
-        'created_at' => now(),
-        'updated_at' => now(),
+        'status' => 'published',
     ]);
 
-    $entry = Entry::query()->findOrFail($entryId);
-
-    EntryBlock::query()->create([
+    EntryBlock::create([
         'entry_id' => $entry->id,
         'key' => 'history',
         'format' => 'markdown',
@@ -147,16 +130,13 @@ it('renders stub when locked_mode is stub', function () {
 
     $user = FakeUser2::query()->create(['name' => 'Reader']);
 
-    $seriesId = DB::table('sw_series')->insertGetId([
-        'ulid' => (string) \Illuminate\Support\Str::ulid(),
+    $series = Series::create([
         'slug' => 'stellar-empire',
         'name' => 'Stellar Empire',
-        'created_at' => now(),
-        'updated_at' => now(),
     ]);
 
     $work = Work::create([
-        'series_id' => $seriesId,
+        'series_id' => $series->id,
         'slug' => 'bones-that-remember',
         'title' => 'The Bones That Remember',
         'kind' => 'novella',
@@ -169,18 +149,15 @@ it('renders stub when locked_mode is stub', function () {
         'label' => 'Chapter 1',
     ]);
 
-    $entryId = DB::table('sw_entries')->insertGetId([
-        'series_id' => $seriesId,
+    $entry = Entry::create([
+        'series_id' => $series->id,
         'slug' => 'ogris',
         'title' => 'Ogris',
         'type' => 'species',
-        'created_at' => now(),
-        'updated_at' => now(),
+        'status' => 'published',
     ]);
 
-    $entry = Entry::query()->findOrFail($entryId);
-
-    EntryBlock::query()->create([
+    EntryBlock::create([
         'entry_id' => $entry->id,
         'key' => 'history',
         'format' => 'markdown',

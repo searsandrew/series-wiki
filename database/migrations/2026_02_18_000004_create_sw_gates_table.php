@@ -8,14 +8,13 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('sw_gates', function (Blueprint $table) {
-            $table->id();
-            $table->ulid('ulid')->unique();
+            $table->ulid('id')->primary();
 
-            $table->foreignId('work_id')->constrained('sw_works')->cascadeOnDelete();
+            $table->foreignUlid('work_id')->constrained('sw_works')->cascadeOnDelete();
 
-            $table->string('key'); // e.g. "1", "2", "epilogue"
-            $table->unsignedInteger('position'); // ordering
-            $table->string('label'); // e.g. "Chapter 1"
+            $table->string('key'); // "1", "2", "epilogue"
+            $table->unsignedInteger('position'); // ordering integer
+            $table->string('label'); // "Chapter 1"
 
             $table->timestamps();
 

@@ -19,12 +19,12 @@ class SeriesWikiServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->publishes([
-            __DIR__ . '/../config/series-wiki.php' => config_path('series-wiki.php'),
+            __DIR__ . '/../config/series-wiki.php' => $this->app->configPath('series-wiki.php'),
         ], 'series-wiki-config');
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__ . '/../database/migrations' => database_path('migrations'),
+                __DIR__ . '/../database/migrations' => $this->app->databasePath('migrations'),
             ], 'series-wiki-migrations');
         }
     }

@@ -4,36 +4,31 @@ namespace Searsandrew\SeriesWiki\Services;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Collection;
-use Searsandrew\SeriesWiki\Models\Gate;
 use Searsandrew\SeriesWiki\Models\Entry;
 use Searsandrew\SeriesWiki\Models\EntryBlock;
 
 class EntryRenderer
 {
     public function __construct(
-        protected GateAccess $gateAccess,
+        protected GateAccess $gateAccess
     ) {}
 
     /**
-     * @return Collection<int, array{block: EntryBlock, body: ?string, is_locked: bool, required_gate: ?Gate}>
+     * @return Collection<int, array{block: EntryBlock, body: ?string, is_locked: bool}>
      */
     public function render(Entry $entry, ?Authenticatable $user = null): Collection
     {
         return $entry->blocks()
-            ->with('requiredGate')
-            ->orderBy('sort')
+            ->with('requiredGate.work')
             ->get()
             ->map(function (EntryBlock $block) use ($user) {
                 $requiredGate = $block->requiredGate;
 
-                $canView = $this->gateAccess->canView($user, $requiredGate);
-
-                if ($canView) {
+                if ($this->gateAccess->canView($user, $requiredGate)) {
                     return [
                         'block' => $block,
                         'body' => $block->body_full,
                         'is_locked' => false,
-                        'required_gate' => $requiredGate,
                     ];
                 }
 
@@ -44,16 +39,13 @@ class EntryRenderer
                         'block' => $block,
                         'body' => config('series-wiki.spoilers.stub_text'),
                         'is_locked' => true,
-                        'required_gate' => $requiredGate,
                     ];
                 }
 
-                // safe mode
                 return [
                     'block' => $block,
                     'body' => $block->body_safe,
                     'is_locked' => true,
-                    'required_gate' => $requiredGate,
                 ];
             })
             ->values();

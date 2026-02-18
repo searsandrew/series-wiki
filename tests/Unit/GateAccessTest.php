@@ -1,39 +1,33 @@
 <?php
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Foundation\Auth\User as AuthenticatableUser;
-use Illuminate\Support\Facades\DB;
 use Searsandrew\SeriesWiki\Models\Gate;
+use Searsandrew\SeriesWiki\Models\Series;
 use Searsandrew\SeriesWiki\Models\UserWorkProgress;
 use Searsandrew\SeriesWiki\Models\Work;
 use Searsandrew\SeriesWiki\Services\GateAccess;
 
 class FakeUser extends AuthenticatableUser
 {
+    use HasUlids;
+
     protected $table = 'users';
+
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $guarded = [];
 }
 
-beforeEach(function () {
-    // minimal users table for auth identifier
-    $this->app['db']->connection()->getSchemaBuilder()->create('users', function ($t) {
-        $t->id();
-        $t->string('name')->nullable();
-        $t->timestamps();
-    });
-});
-
 it('denies gated content for guests', function () {
-    $seriesId = DB::table('sw_series')->insertGetId([
-        'ulid' => (string) \Illuminate\Support\Str::ulid(),
+    $series = Series::create([
         'slug' => 'stellar-empire',
         'name' => 'Stellar Empire',
-        'created_at' => now(),
-        'updated_at' => now(),
     ]);
 
     $work = Work::create([
-        'series_id' => $seriesId,
+        'series_id' => $series->id,
         'slug' => 'bones-that-remember',
         'title' => 'The Bones That Remember',
         'kind' => 'novella',
@@ -52,18 +46,15 @@ it('denies gated content for guests', function () {
 });
 
 it('allows gated content when user progress meets gate position', function () {
-    $user = FakeUser::query()->create(['name' => 'Andrew']);
+    $user = FakeUser::query()->create(['name' => 'Reader']);
 
-    $seriesId = DB::table('sw_series')->insertGetId([
-        'ulid' => (string) \Illuminate\Support\Str::ulid(),
+    $series = Series::create([
         'slug' => 'stellar-empire',
         'name' => 'Stellar Empire',
-        'created_at' => now(),
-        'updated_at' => now(),
     ]);
 
     $work = Work::create([
-        'series_id' => $seriesId,
+        'series_id' => $series->id,
         'slug' => 'bones-that-remember',
         'title' => 'The Bones That Remember',
         'kind' => 'novella',
@@ -77,7 +68,7 @@ it('allows gated content when user progress meets gate position', function () {
     ]);
 
     UserWorkProgress::create([
-        'user_id' => $user->id,
+        'user_id' => (string) $user->getAuthIdentifier(),
         'work_id' => $work->id,
         'max_gate_position' => 1,
     ]);
@@ -88,18 +79,15 @@ it('allows gated content when user progress meets gate position', function () {
 });
 
 it('denies gated content when progress is behind', function () {
-    $user = FakeUser::query()->create(['name' => 'Andrew']);
+    $user = FakeUser::query()->create(['name' => 'Reader']);
 
-    $seriesId = DB::table('sw_series')->insertGetId([
-        'ulid' => (string) \Illuminate\Support\Str::ulid(),
+    $series = Series::create([
         'slug' => 'stellar-empire',
         'name' => 'Stellar Empire',
-        'created_at' => now(),
-        'updated_at' => now(),
     ]);
 
     $work = Work::create([
-        'series_id' => $seriesId,
+        'series_id' => $series->id,
         'slug' => 'bones-that-remember',
         'title' => 'The Bones That Remember',
         'kind' => 'novella',
@@ -113,7 +101,7 @@ it('denies gated content when progress is behind', function () {
     ]);
 
     UserWorkProgress::create([
-        'user_id' => $user->id,
+        'user_id' => (string) $user->getAuthIdentifier(),
         'work_id' => $work->id,
         'max_gate_position' => 2,
     ]);

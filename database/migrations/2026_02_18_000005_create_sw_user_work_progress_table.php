@@ -8,11 +8,12 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('sw_user_work_progress', function (Blueprint $table) {
-            $table->id();
-            $table->ulid('ulid')->unique();
+            $table->ulid('id')->primary();
 
-            $table->unsignedBigInteger('user_id')->index();
-            $table->foreignId('work_id')->constrained('sw_works')->cascadeOnDelete();
+            // Host app user IDs are unknown type; we store as string for max compatibility (works for ULID, UUID, and integer user IDs)
+            $table->string('user_id')->index();
+
+            $table->foreignUlid('work_id')->constrained('sw_works')->cascadeOnDelete();
 
             $table->unsignedInteger('max_gate_position')->default(0);
 

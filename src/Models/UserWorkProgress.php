@@ -2,27 +2,24 @@
 
 namespace Searsandrew\SeriesWiki\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 
 class UserWorkProgress extends Model
 {
+    use HasUlids;
+
     protected $table = 'sw_user_work_progress';
 
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
-        'ulid',
         'user_id',
         'work_id',
         'max_gate_position',
     ];
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $model) {
-            $model->ulid ??= (string) Str::ulid();
-        });
-    }
 
     public function work(): BelongsTo
     {
