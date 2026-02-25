@@ -5,23 +5,26 @@ namespace Searsandrew\SeriesWiki\Services;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Searsandrew\SeriesWiki\Models\Entry;
-use Searsandrew\SeriesWiki\Models\TimeSlice;
-use Searsandrew\SeriesWiki\Services\Timeline\TimeSliceMatcher;
+use Searsandrew\SeriesWiki\Models\TypeNeighbor;
 use Searsandrew\SeriesWiki\Services\Timeline\YearRange;
 
 class ContemporaryService
 {
-    public function __construct(
-        protected TimeSliceMatcher $matcher,
-    ) {}
-
     /**
-     * Find contemporaries for an entry (same series + same type) based on time slice overlap.
+     * Find contemporaries for an entry based on time slice overlap.
+     *
+     * - Always includes same type
+     * - Optionally includes configured neighbor types (series-scoped) with weighted ranking
+     * - Only returns published entries
      *
      * @return Collection<int, Entry>
      */
-    public function contemporaries(Entry $entry, ?YearRange $range = null, int $limit = 12): Collection
-    {
+    public function contemporaries(
+        Entry $entry,
+        ?YearRange $range = null,
+        int $limit = 12,
+        bool $includeNeighbors = true
+    ): Collection {
         $sliceIds = $this->timeSliceIdsForEntry($entry);
 
         // If we can't determine any time slices, don't guess.
@@ -29,48 +32,78 @@ class ContemporaryService
             return collect();
         }
 
-        // Base query: same series, same type, not itself
+        $types = collect([$entry->type]);
+
+        $neighborWeights = collect(); // neighbor_type => weight
+
+        if ($includeNeighbors) {
+            $neighbors = TypeNeighbor::query()
+                ->where('series_id', $entry->series_id)
+                ->where('type', $entry->type)
+                ->get(['neighbor_type', 'weight']);
+
+            foreach ($neighbors as $n) {
+                $types->push($n->neighbor_type);
+                $neighborWeights->put($n->neighbor_type, (int) $n->weight);
+            }
+        }
+
+        $types = $types->unique()->values();
+
+        // Base query: same series, allowed types, published only, not itself
         $q = Entry::query()
             ->where('series_id', $entry->series_id)
-            ->where('type', $entry->type)
+            ->whereIn('type', $types->all())
             ->where('status', 'published')
             ->where('id', '!=', $entry->id);
 
-        // Must share at least one slice id
+        // Must share at least one slice id (candidate must have entry-level time slices)
         $q->whereHas('timeSlices', function (Builder $sub) use ($sliceIds) {
             $sub->whereIn('sw_time_slices.id', $sliceIds->all());
         });
 
-        // If range provided, ensure the entry has at least one slice that intersects the range
+        // If viewer range provided, ensure candidate intersects range
         if ($range) {
             $q->whereHas('timeSlices', function (Builder $sub) use ($range) {
-                $sub->where(function (Builder $w) use ($range) {
-                    // inclusive overlap: NOT (end < start || start > end)
-                    $w->where('end_year', '>=', $range->startYear)
-                        ->where('start_year', '<=', $range->endYear);
-                });
+                $sub->where('end_year', '>=', $range->startYear)
+                    ->where('start_year', '<=', $range->endYear);
             });
         }
 
-        // Pull entries + their slices (so we can score overlap)
         $entries = $q->with('timeSlices')->get();
 
-        // Score by overlap count with the source entry sliceIds
-        $scored = $entries->map(function (Entry $candidate) use ($sliceIds) {
+        // Score by overlap count + type bonus/weight
+        $scored = $entries->map(function (Entry $candidate) use ($sliceIds, $entry, $neighborWeights) {
             $overlap = $candidate->timeSlices
                 ->pluck('id')
                 ->intersect($sliceIds)
                 ->count();
 
+            // Same type gets a big, stable bonus so it ranks above neighbors.
+            $typeBonus = $candidate->type === $entry->type ? 10_000 : 0;
+
+            // Neighbor weight bonus (if configured)
+            $neighborBonus = $candidate->type !== $entry->type
+                ? (int) ($neighborWeights->get($candidate->type, 0))
+                : 0;
+
             return [
                 'entry' => $candidate,
+                'score' => ($overlap * 100) + $typeBonus + $neighborBonus,
                 'overlap' => $overlap,
             ];
         });
 
         return $scored
-            ->sortByDesc('overlap')
-            ->sortBy(fn ($row) => $row['entry']->title)
+            ->sort(function (array $a, array $b) {
+                // score desc
+                if ($a['score'] !== $b['score']) {
+                    return $b['score'] <=> $a['score'];
+                }
+
+                // title asc (case-insensitive)
+                return strcasecmp($a['entry']->title, $b['entry']->title);
+            })
             ->pluck('entry')
             ->take($limit)
             ->values();
@@ -109,11 +142,9 @@ class ContemporaryService
         // Infer from tagged variant blocks (across variants)
         $entry->loadMissing(['variants.blocks.timeSlices']);
 
-        $variantSliceIds = $entry->variants
+        return $entry->variants
             ->flatMap(fn ($v) => $v->blocks->flatMap(fn ($b) => $b->timeSlices->pluck('id')))
             ->unique()
             ->values();
-
-        return $variantSliceIds;
     }
 }
