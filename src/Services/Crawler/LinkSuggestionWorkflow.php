@@ -97,7 +97,7 @@ class LinkSuggestionWorkflow
         }
 
         // Build default URL format (host app can override later)
-        $url = '/wiki/' . $target->slug;
+        $url = $this->entryUrl($target);
 
         $body = (string) ($block->body_full ?? '');
 
@@ -143,5 +143,26 @@ class LinkSuggestionWorkflow
             $match = $m[1];
             return '[' . $match . '](' . $url . ')';
         }, $text, 1) ?? $text;
+    }
+
+    protected function entryUrl(Entry $entry): string
+    {
+        $gen = config('series-wiki.links.url_generator');
+
+        if ($gen === null) {
+            return '/wiki/' . $entry->slug;
+        }
+
+        if (is_callable($gen)) {
+            return (string) $gen($entry);
+        }
+
+        if (is_string($gen) && class_exists($gen)) {
+            $callable = app($gen);
+            return (string) $callable($entry);
+        }
+
+        // Fallback: safest default
+        return '/wiki/' . $entry->slug;
     }
 }

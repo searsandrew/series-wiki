@@ -159,3 +159,60 @@ it('refuses to apply a stale suggestion when snapshot hash differs', function ()
     expect($result['applied'])->toBeFalse();
     expect($result['reason'])->toBe('Suggestion is stale (entry changed since crawl)');
 });
+
+it('uses a configurable url generator when applying a suggestion', function () {
+    config()->set('series-wiki.links.url_generator', function ($entry) {
+        return '/lore/' . $entry->slug;
+    });
+
+    $series = Series::create(['slug' => 'stellar-empire', 'name' => 'Stellar Empire']);
+
+    $target = Entry::create([
+        'series_id' => $series->id,
+        'slug' => 'battle-x',
+        'title' => 'Battle X',
+        'type' => 'event',
+        'status' => 'published',
+    ]);
+
+    $source = Entry::create([
+        'series_id' => $series->id,
+        'slug' => 'ship-a',
+        'title' => 'Ship A',
+        'type' => 'ship',
+        'status' => 'published',
+    ]);
+
+    EntryBlock::create([
+        'entry_id' => $source->id,
+        'key' => 'overview',
+        'body_full' => 'Battle X was decisive.',
+        'locked_mode' => 'safe',
+        'sort' => 0,
+    ]);
+
+    $hash = hash('sha256', "overview:\nBattle X was decisive.");
+    EntrySnapshot::create([
+        'entry_id' => $source->id,
+        'hash' => $hash,
+        'text' => "overview:\nBattle X was decisive.",
+    ]);
+
+    $s = LinkSuggestion::create([
+        'entry_id' => $source->id,
+        'block_key' => 'overview',
+        'suggested_entry_id' => $target->id,
+        'anchor_text' => 'Battle X',
+        'occurrences' => 1,
+        'confidence' => 0.7,
+        'status' => 'new',
+        'snapshot_hash' => $hash,
+        'meta' => ['phrase' => 'Battle X'],
+    ]);
+
+    $wf = app(LinkSuggestionWorkflow::class);
+    $wf->applyToBlock($s);
+
+    $block = EntryBlock::query()->where('entry_id', $source->id)->where('key', 'overview')->firstOrFail();
+    expect($block->body_full)->toBe('[Battle X](/lore/battle-x) was decisive.');
+});
