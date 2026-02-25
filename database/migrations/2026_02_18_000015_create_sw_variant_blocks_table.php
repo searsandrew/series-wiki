@@ -15,6 +15,8 @@ return new class extends Migration {
             $table->string('key')->index();
             $table->string('label')->nullable();
             $table->string('format')->default('markdown');
+            $table->string('type')->default('text')->index();
+            $table->json('data')->nullable();
 
             $table->longText('body_safe')->nullable();
             $table->longText('body_full')->nullable();

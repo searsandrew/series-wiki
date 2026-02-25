@@ -15,6 +15,8 @@ return new class extends Migration {
             $table->string('key')->default('overview')->index(); // overview/history/biology/etc
             $table->string('label')->nullable(); // human friendly section title
             $table->string('format')->default('markdown'); // markdown/html/json
+            $table->string('type')->default('text')->index();   // text|image|chart|map|callout|...
+            $table->json('data')->nullable();                   // structured payload for non-text blocks
 
             // Spoiler system: safe + full
             $table->longText('body_safe')->nullable();
