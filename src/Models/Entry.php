@@ -37,6 +37,11 @@ class Entry extends Model
         return $this->belongsTo(Template::class, 'template_id');
     }
 
+    public function aliases(): HasMany
+    {
+        return $this->hasMany(\Searsandrew\SeriesWiki\Models\EntryAlias::class, 'entry_id')->orderBy('sort');
+    }
+
     public function blocks(): HasMany
     {
         return $this->hasMany(EntryBlock::class, 'entry_id')->orderBy('sort');

@@ -25,6 +25,7 @@ return new class extends Migration {
 
             // new|accepted|dismissed
             $table->string('status')->default('new')->index();
+            $table->string('snapshot_hash')->nullable()->index();
 
             $table->json('meta')->nullable();
 

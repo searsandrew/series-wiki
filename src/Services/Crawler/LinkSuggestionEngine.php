@@ -3,19 +3,14 @@
 namespace Searsandrew\SeriesWiki\Services\Crawler;
 
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Searsandrew\SeriesWiki\Models\Entry;
+use Searsandrew\SeriesWiki\Models\EntryAlias;
 use Searsandrew\SeriesWiki\Models\EntrySnapshot;
 use Searsandrew\SeriesWiki\Models\LinkSuggestion;
 use Searsandrew\SeriesWiki\Models\Series;
 
 class LinkSuggestionEngine
 {
-    /**
-     * Crawl a whole series and generate link suggestions for published entries.
-     *
-     * @return array{entries_scanned:int, entries_skipped_unchanged:int, suggestions_created:int}
-     */
     public function crawlSeries(Series $series, int $limit = 0, bool $dryRun = false): array
     {
         $entries = Entry::query()
@@ -32,9 +27,13 @@ class LinkSuggestionEngine
             ->filter(fn ($e) => trim((string) $e->title) !== '')
             ->values();
 
-        // Title dictionary: id => title, plus map title => id for quick use
-        $titleById = $targets->pluck('title', 'id');
-        $idByTitle = $targets->pluck('id', 'title'); // titles must be unique-ish; collisions handled by iterating IDs
+        // Aliases for published entries
+        $aliases = EntryAlias::query()
+            ->whereIn('entry_id', $targets->pluck('id'))
+            ->get(['entry_id', 'alias']);
+
+        // Build phrase => list of {entry_id, match}
+        $phraseMap = $this->buildPhraseMap($targets, $aliases);
 
         $scanned = 0;
         $skipped = 0;
@@ -63,24 +62,21 @@ class LinkSuggestionEngine
                     'text' => $text,
                 ]);
 
-                // Clear only "new" suggestions for this entry when content changes; keep accepted/dismissed history.
                 LinkSuggestion::query()
                     ->where('entry_id', $entry->id)
                     ->where('status', 'new')
                     ->delete();
             }
 
-            // Generate suggestions per block using the real block bodies (so we can point to block_key)
             $entry->loadMissing('blocks');
 
             foreach ($entry->blocks as $block) {
                 $blockText = (string) ($block->body_full ?? '');
-
-                $suggestions = $this->suggestFromText(
+                $suggestions = $this->suggestFromTextUsingPhraseMap(
                     sourceEntry: $entry,
                     blockKey: $block->key,
                     text: $blockText,
-                    targets: $targets
+                    phraseMap: $phraseMap
                 );
 
                 foreach ($suggestions as $s) {
@@ -96,6 +92,7 @@ class LinkSuggestionEngine
                                 'occurrences' => $s['occurrences'],
                                 'confidence' => $s['confidence'],
                                 'status' => 'new',
+                                'snapshot_hash' => $hash,
                                 'meta' => $s['meta'],
                             ]
                         );
@@ -112,10 +109,6 @@ class LinkSuggestionEngine
         ];
     }
 
-    /**
-     * Extract text used for snapshot hashing and coarse suggestion context.
-     * For now: concatenate all block full bodies (published content side).
-     */
     public function extractTextForEntry(Entry $entry): string
     {
         $entry->loadMissing('blocks');
@@ -133,10 +126,61 @@ class LinkSuggestionEngine
     }
 
     /**
+     * Build phrase map from titles + aliases.
+     *
+     * @param Collection<int, Entry> $targets
+     * @param Collection<int, EntryAlias> $aliases
+     * @return array<string, array<int, array{entry_id:string, match:string, title:string}>>
+     */
+    protected function buildPhraseMap(Collection $targets, Collection $aliases): array
+    {
+        $map = [];
+
+        foreach ($targets as $t) {
+            $title = trim((string) $t->title);
+            if ($this->isNoisyPhrase($title)) {
+                continue;
+            }
+            $map[$title][] = ['entry_id' => $t->id, 'match' => 'title', 'title' => $title];
+        }
+
+        foreach ($aliases as $a) {
+            $phrase = trim((string) $a->alias);
+            if ($this->isNoisyPhrase($phrase)) {
+                continue;
+            }
+
+            // Find entry title for display purposes
+            $t = $targets->firstWhere('id', $a->entry_id);
+            if (! $t) {
+                continue;
+            }
+
+            $map[$phrase][] = ['entry_id' => $a->entry_id, 'match' => 'alias', 'title' => (string) $t->title];
+        }
+
+        // Sort keys by length desc so longer phrases match first
+        uksort($map, function ($a, $b) {
+            $la = mb_strlen($a);
+            $lb = mb_strlen($b);
+            if ($la !== $lb) return $lb <=> $la;
+            return strcasecmp($a, $b);
+        });
+
+        return $map;
+    }
+
+    /**
+     * Suggest using phrase map.
+     *
      * @return Collection<int, array{suggested_entry_id:string, anchor_text:string, occurrences:int, confidence:float, meta:array}>
      */
-    public function suggestFromText(Entry $sourceEntry, ?string $blockKey, string $text, Collection $targets): Collection
-    {
+    protected function suggestFromTextUsingPhraseMap(
+        Entry $sourceEntry,
+        ?string $blockKey,
+        string $text,
+        array $phraseMap
+    ): Collection {
         $text = (string) $text;
 
         if (trim($text) === '') {
@@ -145,28 +189,15 @@ class LinkSuggestionEngine
 
         $out = collect();
 
-        foreach ($targets as $target) {
-            // Don't suggest self
-            if ($target->id === $sourceEntry->id) {
-                continue;
-            }
-
-            $title = trim((string) $target->title);
-
-            // Skip very short titles (noise)
-            if (mb_strlen($title) < 3) {
-                continue;
-            }
-
-            // Already linked? If markdown link uses this exact anchor, skip.
-            // Example: [Battle X](...)
-            $alreadyLinkedPattern = '/\[' . preg_quote($title, '/') . '\]\(/i';
+        foreach ($phraseMap as $phrase => $hits) {
+            // Skip if already linked with this anchor as markdown
+            $alreadyLinkedPattern = '/\[' . preg_quote($phrase, '/') . '\]\(/i';
             if (preg_match($alreadyLinkedPattern, $text)) {
                 continue;
             }
 
-            // Find occurrences: word-boundary-ish match (handles punctuation reasonably)
-            $pattern = '/(?<!\w)' . preg_quote($title, '/') . '(?!\w)/i';
+            // Find occurrences in text
+            $pattern = '/(?<!\w)' . preg_quote($phrase, '/') . '(?!\w)/i';
             if (! preg_match_all($pattern, $text, $m)) {
                 continue;
             }
@@ -176,27 +207,36 @@ class LinkSuggestionEngine
                 continue;
             }
 
-            $confidence = $this->confidenceFromOccurrences($occ);
+            foreach ($hits as $hit) {
+                // no self suggestions
+                if ($hit['entry_id'] === $sourceEntry->id) {
+                    continue;
+                }
 
-            $out->push([
-                'suggested_entry_id' => $target->id,
-                'anchor_text' => $title,
-                'occurrences' => $occ,
-                'confidence' => $confidence,
-                'meta' => [
-                    'match' => 'title',
-                    'block_key' => $blockKey,
-                ],
-            ]);
+                $confidence = $this->confidenceFromOccurrences($occ);
+
+                $out->push([
+                    'suggested_entry_id' => $hit['entry_id'],
+                    // anchor_text should be the canonical title for the target entry
+                    'anchor_text' => $hit['title'],
+                    'occurrences' => $occ,
+                    'confidence' => $confidence,
+                    'meta' => [
+                        'match' => $hit['match'],     // title|alias
+                        'phrase' => $phrase,          // what we matched in text
+                        'block_key' => $blockKey,
+                    ],
+                ]);
+            }
         }
 
-        // Rank by occurrences desc, then longer title (more specific), then alpha
+        // Rank: occurrences desc, then longer phrase, then alpha
         return $out->sort(function ($a, $b) {
             if ($a['occurrences'] !== $b['occurrences']) {
                 return $b['occurrences'] <=> $a['occurrences'];
             }
-            $la = mb_strlen($a['anchor_text']);
-            $lb = mb_strlen($b['anchor_text']);
+            $la = mb_strlen($a['meta']['phrase'] ?? $a['anchor_text']);
+            $lb = mb_strlen($b['meta']['phrase'] ?? $b['anchor_text']);
             if ($la !== $lb) {
                 return $lb <=> $la;
             }
@@ -204,16 +244,27 @@ class LinkSuggestionEngine
         })->values();
     }
 
+    protected function isNoisyPhrase(string $phrase): bool
+    {
+        $p = trim($phrase);
+
+        // too short = noise
+        if (mb_strlen($p) < 3) return true;
+
+        // pure numbers or very short tokens are usually bad
+        if (preg_match('/^\d+$/', $p)) return true;
+
+        return false;
+    }
+
     protected function confidenceFromOccurrences(int $occ): float
     {
-        // Simple bounded curve: 1->0.60, 2->0.70, 3->0.78, 4->0.84, 5->0.88, ...
         $base = 1 - exp(-0.35 * max(1, $occ));
         return round(min(0.99, 0.50 + ($base * 0.49)), 4);
     }
 
     protected function hashText(string $text): string
     {
-        // stable hash
         return hash('sha256', $text);
     }
 }

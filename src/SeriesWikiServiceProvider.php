@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Searsandrew\SeriesWiki\Console\CrawlSeriesWikiCommand;
 use Searsandrew\SeriesWiki\Services\ContemporaryService;
 use Searsandrew\SeriesWiki\Services\Crawler\LinkSuggestionEngine;
+use Searsandrew\SeriesWiki\Services\Crawler\LinkSuggestionWorkflow;
 use Searsandrew\SeriesWiki\Services\EntryCreator;
 use Searsandrew\SeriesWiki\Services\EntryRenderer;
 use Searsandrew\SeriesWiki\Services\GateAccess;
@@ -41,6 +42,7 @@ class SeriesWikiServiceProvider extends ServiceProvider
         $this->app->singleton(ContemporaryService::class);
 
         $this->app->singleton(LinkSuggestionEngine::class);
+        $this->app->singleton(LinkSuggestionWorkflow::class);
     }
 
     public function boot(): void
