@@ -33,6 +33,7 @@ class ContemporaryService
         $q = Entry::query()
             ->where('series_id', $entry->series_id)
             ->where('type', $entry->type)
+            ->where('status', 'published')
             ->where('id', '!=', $entry->id);
 
         // Must share at least one slice id
