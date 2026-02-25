@@ -3,6 +3,7 @@
 namespace Searsandrew\SeriesWiki;
 
 use Illuminate\Support\ServiceProvider;
+use Searsandrew\SeriesWiki\Services\ContemporaryService;
 use Searsandrew\SeriesWiki\Services\EntryCreator;
 use Searsandrew\SeriesWiki\Services\EntryRenderer;
 use Searsandrew\SeriesWiki\Services\GateAccess;
@@ -34,6 +35,8 @@ class SeriesWikiServiceProvider extends ServiceProvider
         $this->app->singleton(TimeSliceMatcher::class);
         $this->app->singleton(VariantResolver::class);
         $this->app->singleton(VariantComposer::class);
+
+        $this->app->singleton(ContemporaryService::class);
     }
 
     public function boot(): void
