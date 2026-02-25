@@ -3,7 +3,9 @@
 namespace Searsandrew\SeriesWiki;
 
 use Illuminate\Support\ServiceProvider;
+use Searsandrew\SeriesWiki\Console\CrawlSeriesWikiCommand;
 use Searsandrew\SeriesWiki\Services\ContemporaryService;
+use Searsandrew\SeriesWiki\Services\Crawler\LinkSuggestionEngine;
 use Searsandrew\SeriesWiki\Services\EntryCreator;
 use Searsandrew\SeriesWiki\Services\EntryRenderer;
 use Searsandrew\SeriesWiki\Services\GateAccess;
@@ -37,6 +39,8 @@ class SeriesWikiServiceProvider extends ServiceProvider
         $this->app->singleton(VariantComposer::class);
 
         $this->app->singleton(ContemporaryService::class);
+
+        $this->app->singleton(LinkSuggestionEngine::class);
     }
 
     public function boot(): void
@@ -49,6 +53,9 @@ class SeriesWikiServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__ . '/../database/migrations' => $this->app->databasePath('migrations'),
             ], 'series-wiki-migrations');
+            $this->commands([
+                CrawlSeriesWikiCommand::class,
+            ]);
         }
     }
 }
