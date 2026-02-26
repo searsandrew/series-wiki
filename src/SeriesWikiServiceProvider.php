@@ -17,6 +17,7 @@ use Searsandrew\SeriesWiki\Services\EntryRenderer;
 use Searsandrew\SeriesWiki\Services\GateAccess;
 use Searsandrew\SeriesWiki\Services\GateSeederService;
 use Searsandrew\SeriesWiki\Services\ProgressService;
+use Searsandrew\SeriesWiki\Services\Search\SearchService;
 use Searsandrew\SeriesWiki\Services\TemplateApplier;
 use Searsandrew\SeriesWiki\Services\TemplateResolver;
 use Searsandrew\SeriesWiki\Services\Timeline\TimeSliceMatcher;
@@ -54,6 +55,8 @@ class SeriesWikiServiceProvider extends ServiceProvider
         $this->app->singleton(EntryTypeRegistry::class);
         $this->app->singleton(EntryValidator::class);
         $this->app->singleton(EntryMetaPresenter::class);
+
+        $this->app->singleton(SearchService::class);
     }
 
     public function boot(): void
