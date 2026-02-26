@@ -20,11 +20,18 @@ class TemplateSection extends Model
         'key',
         'label',
         'format',
+        'type',
+        'data',
         'body_safe',
         'body_full',
         'locked_mode',
         'required_gate_id',
         'sort',
+    ];
+
+    protected $casts = [
+        'data' => 'array',
+        'sort' => 'int',
     ];
 
     public function template(): BelongsTo

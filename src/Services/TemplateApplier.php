@@ -42,10 +42,12 @@ class TemplateApplier
             if (! $block) {
                 $block = Block::query()->create([
                     'owner_type' => 'entry',
-                    'owner_id' =>  $entry->id,
+                    'owner_id' => $entry->id,
                     'key' => $section->key,
                     'label' => $section->label,
                     'format' => $section->format,
+                    'type' => $section->type ?? 'text',
+                    'data' => $section->data,
                     'body_safe' => $section->body_safe,
                     'body_full' => $section->body_full,
                     'locked_mode' => $section->locked_mode,
