@@ -34,4 +34,21 @@ return [
          */
         'types' => [],
     ],
+    'entries' => [
+        'allow_unknown_types' => true,
+
+        /**
+         * Entry meta validation rules by entry type.
+         * These rules apply to Entry->meta (JSON cast to array).
+         *
+         * Example:
+         * 'ship' => [
+         *   'class' => 'sometimes|string|max:100',
+         *   'length_m' => 'sometimes|numeric|min:0',
+         *   'crew' => 'sometimes|integer|min:0',
+         *   'homeworld_entry_id' => 'sometimes|string|max:26',
+         * ]
+         */
+        'types' => [],
+    ],
 ];

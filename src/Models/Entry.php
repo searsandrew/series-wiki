@@ -25,6 +25,11 @@ class Entry extends Model
         'type',
         'status',
         'summary',
+        'meta',
+    ];
+
+    protected $casts = [
+        'meta' => 'array',
     ];
 
     public function series(): BelongsTo

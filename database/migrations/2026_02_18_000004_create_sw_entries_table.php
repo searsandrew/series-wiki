@@ -22,6 +22,7 @@ return new class extends Migration {
             $table->string('type')->default('page')->index(); // species/faction/character/ship/event/etc
             $table->string('status')->default('published')->index(); // draft/published/archived
             $table->text('summary')->nullable();
+            $table->json('meta')->nullable(); // structured per-entry data (infobox/search/export)
 
             $table->timestamps();
 
