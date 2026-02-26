@@ -4,6 +4,8 @@ namespace Searsandrew\SeriesWiki;
 
 use Illuminate\Support\ServiceProvider;
 use Searsandrew\SeriesWiki\Console\CrawlSeriesWikiCommand;
+use Searsandrew\SeriesWiki\Services\Blocks\BlockTypeRegistry;
+use Searsandrew\SeriesWiki\Services\Blocks\BlockValidator;
 use Searsandrew\SeriesWiki\Services\ContemporaryService;
 use Searsandrew\SeriesWiki\Services\Crawler\LinkSuggestionEngine;
 use Searsandrew\SeriesWiki\Services\Crawler\LinkSuggestionWorkflow;
@@ -43,6 +45,9 @@ class SeriesWikiServiceProvider extends ServiceProvider
 
         $this->app->singleton(LinkSuggestionEngine::class);
         $this->app->singleton(LinkSuggestionWorkflow::class);
+
+        $this->app->singleton(BlockTypeRegistry::class);
+        $this->app->singleton(BlockValidator::class);
     }
 
     public function boot(): void

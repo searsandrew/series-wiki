@@ -19,4 +19,19 @@ return [
          */
         'url_generator' => null,
     ],
+    'blocks' => [
+        'allow_unknown_types' => false,
+
+        /**
+         * Override or add new block types.
+         *
+         * Structure:
+         * 'type-name' => [
+         *   'data' => [ 'field' => 'rule|rule', ... ],
+         *   'body_full' => 'rule|rule' (optional),
+         *   'body_safe' => 'rule|rule' (optional),
+         * ]
+         */
+        'types' => [],
+    ],
 ];
