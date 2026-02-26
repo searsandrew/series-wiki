@@ -19,25 +19,29 @@ class EntryRenderer
         protected TimeSliceMatcher $timeSliceMatcher,
     ) {}
 
-    /**
-     * Backwards-compatible render: no timeline filter, no variant.
-     *
-     * @return Collection<int, array{type:string, key:string, model:mixed, body:?string, is_locked:bool, block_type:string, locked_mode:string, has_payload:bool}>
-     */
     public function render(Entry $entry, ?Authenticatable $user = null): Collection
     {
         return $this->renderWithContext($entry, $user, null, null);
     }
 
     /**
-     * Render with optional timeline range and variant.
-     *
-     * Rules:
-     * - If a block has no timeSlices => always relevant
-     * - If it has timeSlices => show only if intersects range
-     * - If block.type !== 'text': body will be null (UI renders via type + data)
-     *
-     * @return Collection<int, array{type:string, key:string, model:mixed, body:?string, is_locked:bool, block_type:string, locked_mode:string, has_payload:bool}>
+     * @return Collection<int, array{
+     *   type:string,
+     *   key:string,
+     *   model:mixed,
+     *   body:?string,
+     *   is_locked:bool,
+     *   block_type:string,
+     *   locked_mode:string,
+     *   has_payload:bool,
+     *   display:array{
+     *     title:?string,
+     *     caption:?string,
+     *     alt:?string,
+     *     text:?string,
+     *     payload:mixed
+     *   }
+     * }>
      */
     public function renderWithContext(
         Entry $entry,
@@ -46,7 +50,6 @@ class EntryRenderer
         ?string $variantKey = null,
     ): Collection {
         $variant = $this->variantResolver->resolve($entry, $variantKey);
-
         $composed = $this->variantComposer->compose($entry, $variant);
 
         return $composed
@@ -61,12 +64,10 @@ class EntryRenderer
                     ? $model->timeSlices
                     : collect();
 
-                // Untagged block => always relevant
                 if ($slices->count() === 0) {
-                    return true;
+                    return true; // untagged => always relevant
                 }
 
-                // Tagged block => must intersect at least one slice
                 foreach ($slices as $slice) {
                     if ($this->timeSliceMatcher->intersects($slice, $range)) {
                         return true;
@@ -80,55 +81,91 @@ class EntryRenderer
 
                 $blockType = (string) ($model->type ?? 'text');
                 $lockedMode = (string) ($model->locked_mode ?: config('series-wiki.spoilers.default_locked_mode', 'safe'));
-                $hasPayload = !empty($model->data);
+                $data = is_array($model->data ?? null) ? $model->data : null;
+                $hasPayload = !empty($data);
 
                 $requiredGate = $model->requiredGate ?? null;
-
                 $canView = $this->gateAccess->canView($user, $requiredGate);
+
+                // Helpers for niceties
+                $title = $data['title'] ?? $model->label ?? null;
+                $caption = $data['caption'] ?? null;
+                $alt = $data['alt'] ?? null;
+
+                // Default payload = data (non-text blocks). For text blocks, payload is null.
+                $payload = $blockType === 'text' ? null : $data;
 
                 // LOCKED
                 if (! $canView) {
                     if ($lockedMode === 'stub') {
+                        $stub = (string) config('series-wiki.spoilers.stub_text');
+
                         return [
                             'type' => $item['type'],
                             'key' => $item['key'],
                             'model' => $model,
-                            'body' => (string) config('series-wiki.spoilers.stub_text'),
+                            'body' => $stub,
                             'is_locked' => true,
                             'block_type' => $blockType,
                             'locked_mode' => $lockedMode,
                             'has_payload' => $hasPayload,
+                            'display' => [
+                                'title' => $title,
+                                'caption' => $caption,
+                                'alt' => $alt,
+                                'text' => $stub,
+                                'payload' => null, // locked stub => do not render payload
+                            ],
                         ];
                     }
 
-                    // safe mode: return safe body (or null)
+                    // safe mode: allow safe text; payload stays null unless you later add data.safe
+                    $safeText = $model->body_safe;
+
+                    // Optional future nicety: allow data.safe to override payload when locked
+                    $safePayload = null;
+                    if ($payload !== null && is_array($payload) && isset($payload['safe']) && is_array($payload['safe'])) {
+                        $safePayload = $payload['safe'];
+                    }
+
                     return [
                         'type' => $item['type'],
                         'key' => $item['key'],
                         'model' => $model,
-                        'body' => $model->body_safe,
+                        'body' => $safeText,
                         'is_locked' => true,
                         'block_type' => $blockType,
                         'locked_mode' => $lockedMode,
                         'has_payload' => $hasPayload,
+                        'display' => [
+                            'title' => $title,
+                            'caption' => $caption,
+                            'alt' => $alt,
+                            'text' => $safeText,
+                            'payload' => $safePayload, // usually null; can be data.safe
+                        ],
                     ];
                 }
 
                 // UNLOCKED
-                // If non-text, body is null. UI uses $model->data to render.
-                $body = $blockType === 'text'
-                    ? $model->body_full
-                    : null;
+                $fullText = $blockType === 'text' ? $model->body_full : null;
 
                 return [
                     'type' => $item['type'],
                     'key' => $item['key'],
                     'model' => $model,
-                    'body' => $body,
+                    'body' => $fullText,
                     'is_locked' => false,
                     'block_type' => $blockType,
                     'locked_mode' => $lockedMode,
                     'has_payload' => $hasPayload,
+                    'display' => [
+                        'title' => $title,
+                        'caption' => $caption,
+                        'alt' => $alt,
+                        'text' => $fullText,
+                        'payload' => $payload,
+                    ],
                 ];
             })
             ->values();
