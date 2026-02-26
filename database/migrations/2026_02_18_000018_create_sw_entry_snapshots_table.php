@@ -12,12 +12,13 @@ return new class extends Migration {
 
             $table->foreignUlid('entry_id')->constrained('sw_entries')->cascadeOnDelete();
 
+            $table->string('mode')->default('full')->index(); // 'safe' or 'full'
             $table->string('hash')->index();
-            $table->longText('text'); // extracted plain-ish text used for link suggestion
+            $table->longText('text');
 
             $table->timestamps();
 
-            $table->index(['entry_id', 'created_at']);
+            $table->index(['entry_id', 'mode', 'created_at']);
         });
     }
 

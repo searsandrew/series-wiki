@@ -17,6 +17,7 @@ class EntrySnapshot extends Model
 
     protected $fillable = [
         'entry_id',
+        'mode',
         'hash',
         'text',
     ];

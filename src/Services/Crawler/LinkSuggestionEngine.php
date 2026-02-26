@@ -42,25 +42,50 @@ class LinkSuggestionEngine
         foreach ($entries as $entry) {
             $scanned++;
 
-            $text = $this->extractTextForEntry($entry);
-            $hash = $this->hashText($text);
+            $fullText = $this->extractFullTextForEntry($entry);
+            $fullHash = $this->hashText($fullText);
 
-            $latestHash = EntrySnapshot::query()
+            $safeText = $this->extractSafeTextForEntry($entry);
+            $safeHash = $this->hashText($safeText);
+
+            $latestFullHash = EntrySnapshot::query()
                 ->where('entry_id', $entry->id)
+                ->where('mode', 'full')
                 ->orderByDesc('created_at')
                 ->value('hash');
 
-            if ($latestHash && hash_equals($latestHash, $hash)) {
+            $latestSafeHash = EntrySnapshot::query()
+                ->where('entry_id', $entry->id)
+                ->where('mode', 'safe')
+                ->orderByDesc('created_at')
+                ->value('hash');
+
+            $fullUnchanged = $latestFullHash && hash_equals($latestFullHash, $fullHash);
+            $safeUnchanged = $latestSafeHash && hash_equals($latestSafeHash, $safeHash);
+
+            if ($fullUnchanged && $safeUnchanged) {
                 $skipped++;
                 continue;
             }
 
             if (! $dryRun) {
-                EntrySnapshot::create([
-                    'entry_id' => $entry->id,
-                    'hash' => $hash,
-                    'text' => $text,
-                ]);
+                if (! $fullUnchanged) {
+                    EntrySnapshot::create([
+                        'entry_id' => $entry->id,
+                        'mode' => 'full',
+                        'hash' => $fullHash,
+                        'text' => $fullText,
+                    ]);
+                }
+
+                if (! $safeUnchanged) {
+                    EntrySnapshot::create([
+                        'entry_id' => $entry->id,
+                        'mode' => 'safe',
+                        'hash' => $safeHash,
+                        'text' => $safeText,
+                    ]);
+                }
 
                 LinkSuggestion::query()
                     ->where('entry_id', $entry->id)
@@ -92,7 +117,7 @@ class LinkSuggestionEngine
                                 'occurrences' => $s['occurrences'],
                                 'confidence' => $s['confidence'],
                                 'status' => 'new',
-                                'snapshot_hash' => $hash,
+                                'snapshot_hash' => $fullHash,
                                 'meta' => $s['meta'],
                             ]
                         );
@@ -119,6 +144,60 @@ class LinkSuggestionEngine
             $body = (string) ($block->body_full ?? '');
             if ($body !== '') {
                 $parts[] = $block->key . ":\n" . $body;
+            }
+        }
+
+        return implode("\n\n", $parts);
+    }
+
+    public function extractFullTextForEntry(Entry $entry): string
+    {
+        $entry->loadMissing('blocks');
+
+        $parts = [];
+
+        foreach ($entry->blocks as $block) {
+            $body = (string) ($block->body_full ?? '');
+            if ($body !== '') {
+                $parts[] = $block->key . ":\n" . $body;
+            }
+        }
+
+        return implode("\n\n", $parts);
+    }
+
+    /**
+     * "Safe index" text:
+     * - If block has required_gate_id => use body_safe
+     * - Else => use body_full
+     * - Non-text blocks: include title/caption if present in data
+     */
+    public function extractSafeTextForEntry(Entry $entry): string
+    {
+        $entry->loadMissing('blocks');
+
+        $parts = [];
+
+        foreach ($entry->blocks as $block) {
+            $lines = [];
+
+            // For non-text blocks, include title/caption/alt in indexable text.
+            $data = is_array($block->data ?? null) ? $block->data : [];
+            foreach (['title', 'caption', 'alt'] as $k) {
+                if (!empty($data[$k]) && is_string($data[$k])) {
+                    $lines[] = $data[$k];
+                }
+            }
+
+            $hasGate = !empty($block->required_gate_id);
+            $body = $hasGate ? (string) ($block->body_safe ?? '') : (string) ($block->body_full ?? '');
+
+            if ($body !== '') {
+                $lines[] = $body;
+            }
+
+            if (!empty($lines)) {
+                $parts[] = $block->key . ":\n" . implode("\n", $lines);
             }
         }
 
@@ -191,7 +270,7 @@ class LinkSuggestionEngine
 
         foreach ($phraseMap as $phrase => $hits) {
             // Skip if already linked with this anchor as markdown
-            $alreadyLinkedPattern = '/\[' . preg_quote($phrase, '/') . '\]\(/i';
+            $alreadyLinkedPattern = '/\[' . preg_quote($phrase, '/') . ']\(/i';
             if (preg_match($alreadyLinkedPattern, $text)) {
                 continue;
             }
