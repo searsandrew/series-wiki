@@ -4,9 +4,6 @@ namespace Searsandrew\SeriesWiki\Services\Entries;
 
 class EntryTypeRegistry
 {
-    /**
-     * Returns the entry meta validation rules by type.
-     */
     public function definitions(): array
     {
         return (array) config('series-wiki.entries.types', []);
@@ -17,8 +14,37 @@ class EntryTypeRegistry
         return array_key_exists($type, $this->definitions());
     }
 
-    public function rulesFor(string $type): ?array
+    /**
+     * Returns the structured definition for a type:
+     * ['rules'=>[], 'defaults'=>[], 'fields'=>[]]
+     */
+    public function definitionFor(string $type): ?array
     {
-        return $this->definitions()[$type] ?? null;
+        $def = $this->definitions()[$type] ?? null;
+
+        if (! is_array($def)) {
+            return null;
+        }
+
+        return [
+            'rules' => isset($def['rules']) && is_array($def['rules']) ? $def['rules'] : [],
+            'defaults' => isset($def['defaults']) && is_array($def['defaults']) ? $def['defaults'] : [],
+            'fields' => isset($def['fields']) && is_array($def['fields']) ? $def['fields'] : [],
+        ];
+    }
+
+    public function rulesFor(string $type): array
+    {
+        return $this->definitionFor($type)['rules'] ?? [];
+    }
+
+    public function defaultsFor(string $type): array
+    {
+        return $this->definitionFor($type)['defaults'] ?? [];
+    }
+
+    public function fieldsFor(string $type): array
+    {
+        return $this->definitionFor($type)['fields'] ?? [];
     }
 }

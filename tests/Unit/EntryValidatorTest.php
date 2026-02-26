@@ -25,8 +25,12 @@ it('does nothing when no meta rules are configured for the entry type', function
 it('validates meta according to configured rules for the entry type', function () {
     config()->set('series-wiki.entries.types', [
         'ship' => [
-            'length_m' => 'required|numeric|min:0',
-            'crew' => 'sometimes|integer|min:0',
+            'rules' => [
+                'length_m' => 'required|numeric|min:0',
+                'crew' => 'sometimes|integer|min:0',
+            ],
+            'defaults' => [],
+            'fields' => [],
         ],
     ]);
 
@@ -49,7 +53,12 @@ it('validates meta according to configured rules for the entry type', function (
 it('throws a ValidationException when meta violates rules', function () {
     config()->set('series-wiki.entries.types', [
         'ship' => [
-            'length_m' => 'required|numeric|min:0',
+            'rules' => [
+                'length_m' => 'required|numeric|min:0',
+                'crew' => 'sometimes|integer|min:0',
+            ],
+            'defaults' => [],
+            'fields' => [],
         ],
     ]);
 

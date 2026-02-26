@@ -42,12 +42,20 @@ return [
          * These rules apply to Entry->meta (JSON cast to array).
          *
          * Example:
-         * 'ship' => [
-         *   'class' => 'sometimes|string|max:100',
-         *   'length_m' => 'sometimes|numeric|min:0',
-         *   'crew' => 'sometimes|integer|min:0',
-         *   'homeworld_entry_id' => 'sometimes|string|max:26',
-         * ]
+         * 'planet' => [
+         *   'rules' => [
+         *     'gravity_g' => 'sometimes|numeric|min:0',
+         *     'atmosphere.breathable' => 'sometimes|boolean',
+         *   ],
+         *   'defaults' => [
+         *     'gravity_g' => 1.0,
+         *     'atmosphere' => ['breathable' => false],
+         *   ],
+         *   'fields' => [
+         *     ['key' => 'gravity_g', 'label' => 'Gravity (g)'],
+         *     ['key' => 'atmosphere.breathable', 'label' => 'Breathable'],
+         *   ],
+         * ],
          */
         'types' => [],
     ],

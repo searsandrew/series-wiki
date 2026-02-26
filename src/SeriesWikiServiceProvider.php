@@ -9,6 +9,7 @@ use Searsandrew\SeriesWiki\Services\Blocks\BlockValidator;
 use Searsandrew\SeriesWiki\Services\ContemporaryService;
 use Searsandrew\SeriesWiki\Services\Crawler\LinkSuggestionEngine;
 use Searsandrew\SeriesWiki\Services\Crawler\LinkSuggestionWorkflow;
+use Searsandrew\SeriesWiki\Services\Entries\EntryMetaPresenter;
 use Searsandrew\SeriesWiki\Services\Entries\EntryTypeRegistry;
 use Searsandrew\SeriesWiki\Services\Entries\EntryValidator;
 use Searsandrew\SeriesWiki\Services\EntryCreator;
@@ -52,6 +53,7 @@ class SeriesWikiServiceProvider extends ServiceProvider
         $this->app->singleton(BlockValidator::class);
         $this->app->singleton(EntryTypeRegistry::class);
         $this->app->singleton(EntryValidator::class);
+        $this->app->singleton(EntryMetaPresenter::class);
     }
 
     public function boot(): void

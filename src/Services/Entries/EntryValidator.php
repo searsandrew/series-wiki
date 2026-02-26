@@ -21,15 +21,14 @@ class EntryValidator
 
         $rules = $this->registry->rulesFor($type);
 
-        if (! $rules) {
-            // If unknown types not allowed AND there are some definitions, treat missing as error
+        if (empty($rules)) {
             if (! config('series-wiki.entries.allow_unknown_types', true) && ! $this->registry->has($type)) {
                 throw ValidationException::withMessages([
                     'type' => ["Unknown entry type: {$type}"],
                 ]);
             }
 
-            return; // no-op if no schema configured
+            return;
         }
 
         // Validate meta as an array
