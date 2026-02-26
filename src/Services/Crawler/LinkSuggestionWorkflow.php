@@ -3,8 +3,8 @@
 namespace Searsandrew\SeriesWiki\Services\Crawler;
 
 use Illuminate\Support\Str;
+use Searsandrew\SeriesWiki\Models\Block;
 use Searsandrew\SeriesWiki\Models\Entry;
-use Searsandrew\SeriesWiki\Models\EntryBlock;
 use Searsandrew\SeriesWiki\Models\EntrySnapshot;
 use Searsandrew\SeriesWiki\Models\LinkSuggestion;
 
@@ -41,7 +41,7 @@ class LinkSuggestionWorkflow
      * - refuse if the anchor phrase is already linked in markdown
      * - link only the first occurrence by default (can extend later)
      *
-     * @return array{applied:bool, reason?:string, updated_block?:EntryBlock}
+     * @return array{applied:bool, reason?:string, updated_block?:Block}
      */
     public function applyToBlock(
         LinkSuggestion $suggestion,
@@ -62,9 +62,10 @@ class LinkSuggestionWorkflow
             return ['applied' => false, 'reason' => 'Suggestion missing block_key'];
         }
 
-        /** @var EntryBlock|null $block */
-        $block = EntryBlock::query()
-            ->where('entry_id', $entry->id)
+        /** @var Block|null $block */
+        $block = Block::query()
+            ->where('owner_type', 'entry')
+            ->where('owner_id', $entry->id)
             ->where('key', $blockKey)
             ->first();
 

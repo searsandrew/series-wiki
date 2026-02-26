@@ -1,7 +1,7 @@
 <?php
 
+use Searsandrew\SeriesWiki\Models\Block;
 use Searsandrew\SeriesWiki\Models\Entry;
-use Searsandrew\SeriesWiki\Models\EntryBlock;
 use Searsandrew\SeriesWiki\Models\Series;
 use Searsandrew\SeriesWiki\Services\EntryRenderer;
 use Searsandrew\SeriesWiki\Services\Timeline\YearRange;
@@ -17,8 +17,9 @@ it('returns normalized display fields for non-text blocks', function () {
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $entry->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'map',
         'label' => 'Atlas Map',
         'format' => 'json',
@@ -88,8 +89,9 @@ it('does not leak payload for non-text blocks when locked_mode is stub', functio
         'label' => 'Chapter 1',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $entry->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'map',
         'label' => 'Secret Map',
         'format' => 'json',
@@ -151,8 +153,9 @@ it('uses data.safe as a safe payload for non-text blocks when locked', function 
         'label' => 'Chapter 1',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $entry->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'map',
         'label' => 'Map',
         'format' => 'json',

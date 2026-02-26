@@ -1,6 +1,6 @@
 <?php
 
-use Searsandrew\SeriesWiki\Models\EntryBlock;
+use Searsandrew\SeriesWiki\Models\Block;
 use Searsandrew\SeriesWiki\Models\Series;
 use Searsandrew\SeriesWiki\Models\Template;
 use Searsandrew\SeriesWiki\Models\TemplateSection;
@@ -38,7 +38,7 @@ it('creates an entry and applies the default template for its type', function ()
     ]);
 
     expect($entry->template_id)->toBe($template->id);
-    expect(EntryBlock::query()->where('entry_id', $entry->id)->count())->toBe(1);
+    expect(Block::query()->where('owner_type', 'entry')->where('owner_id', $entry->id)->count())->toBe(1);
     expect($entry->blocks->first()->key)->toBe('overview');
 });
 

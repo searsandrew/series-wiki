@@ -7,17 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class EntryBlock extends Model
+class Block extends Model
 {
     use HasUlids;
 
-    protected $table = 'sw_entry_blocks';
+    protected $table = 'sw_blocks';
 
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
-        'entry_id',
+        'owner_type',
+        'owner_id',
         'key',
         'label',
         'format',
@@ -31,14 +32,9 @@ class EntryBlock extends Model
     ];
 
     protected $casts = [
-        'sort' => 'int',
         'data' => 'array',
+        'sort' => 'int',
     ];
-
-    public function entry(): BelongsTo
-    {
-        return $this->belongsTo(Entry::class, 'entry_id');
-    }
 
     public function requiredGate(): BelongsTo
     {
@@ -49,8 +45,8 @@ class EntryBlock extends Model
     {
         return $this->belongsToMany(
             TimeSlice::class,
-            'sw_entry_block_time_slices',
-            'entry_block_id',
+            'sw_block_time_slices',
+            'block_id',
             'time_slice_id'
         );
     }

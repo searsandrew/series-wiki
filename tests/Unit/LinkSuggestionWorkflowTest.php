@@ -1,7 +1,7 @@
 <?php
 
+use Searsandrew\SeriesWiki\Models\Block;
 use Searsandrew\SeriesWiki\Models\Entry;
-use Searsandrew\SeriesWiki\Models\EntryBlock;
 use Searsandrew\SeriesWiki\Models\EntrySnapshot;
 use Searsandrew\SeriesWiki\Models\LinkSuggestion;
 use Searsandrew\SeriesWiki\Models\Series;
@@ -65,8 +65,9 @@ it('applies a suggestion by inserting a markdown link and marks it accepted', fu
         'status' => 'published',
     ]);
 
-    $block = EntryBlock::create([
-        'entry_id' => $source->id,
+    $block = Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $source->id,
         'key' => 'overview',
         'body_full' => 'Battle X was decisive.',
         'locked_mode' => 'safe',
@@ -125,8 +126,9 @@ it('refuses to apply a stale suggestion when snapshot hash differs', function ()
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $source->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $source->id,
         'key' => 'overview',
         'body_full' => 'Battle X was decisive.',
         'locked_mode' => 'safe',
@@ -183,8 +185,9 @@ it('uses a configurable url generator when applying a suggestion', function () {
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $source->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $source->id,
         'key' => 'overview',
         'body_full' => 'Battle X was decisive.',
         'locked_mode' => 'safe',
@@ -213,6 +216,6 @@ it('uses a configurable url generator when applying a suggestion', function () {
     $wf = app(LinkSuggestionWorkflow::class);
     $wf->applyToBlock($s);
 
-    $block = EntryBlock::query()->where('entry_id', $source->id)->where('key', 'overview')->firstOrFail();
+    $block = Block::query()->where('owner_type', 'entry')->where('owner_id', $source->id)->where('key', 'overview')->firstOrFail();
     expect($block->body_full)->toBe('[Battle X](/lore/battle-x) was decisive.');
 });

@@ -7,14 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('sw_variant_blocks', function (Blueprint $table) {
+        Schema::create('sw_blocks', function (Blueprint $table) {
             $table->ulid('id')->primary();
 
-            $table->foreignUlid('variant_id')->constrained('sw_entry_variants')->cascadeOnDelete();
+            // Polymorphic-ish owner (entry or entry variant)
+            // We keep owner_type as a short string for package clarity.
+            // Values: 'entry', 'variant'
+            $table->string('owner_type')->index();
+            $table->ulid('owner_id')->index();
 
-            $table->string('key')->index();
+            $table->string('key')->default('overview')->index();
             $table->string('label')->nullable();
             $table->string('format')->default('markdown');
+
             $table->string('type')->default('text')->index();
             $table->json('data')->nullable();
 
@@ -32,12 +37,13 @@ return new class extends Migration {
 
             $table->timestamps();
 
-            $table->index(['variant_id', 'key', 'sort']);
+            $table->index(['owner_type', 'owner_id', 'key']);
+            $table->index(['required_gate_id']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('sw_variant_blocks');
+        Schema::dropIfExists('sw_blocks');
     }
 };

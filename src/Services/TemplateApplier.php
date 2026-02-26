@@ -3,8 +3,8 @@
 namespace Searsandrew\SeriesWiki\Services;
 
 use Illuminate\Support\Collection;
+use Searsandrew\SeriesWiki\Models\Block;
 use Searsandrew\SeriesWiki\Models\Entry;
-use Searsandrew\SeriesWiki\Models\EntryBlock;
 use Searsandrew\SeriesWiki\Models\Template;
 
 class TemplateApplier
@@ -19,7 +19,7 @@ class TemplateApplier
      * - By default: creates only missing blocks (does not overwrite).
      * - If $overwrite is true: updates existing blocks to match the template defaults.
      *
-     * @return Collection<int, EntryBlock> blocks that were created/updated
+     * @return Collection<int, Block> blocks that were created/updated
      */
     public function apply(Entry $entry, ?Template $template = null, bool $overwrite = false): Collection
     {
@@ -31,17 +31,18 @@ class TemplateApplier
 
         $template->loadMissing('sections');
 
-        $existing = $entry->blocks()->get()->keyBy(fn (EntryBlock $b) => $b->key);
+        $existing = $entry->blocks()->get()->keyBy(fn (Block $b) => $b->key);
 
         $touched = collect();
 
         foreach ($template->sections as $section) {
-            /** @var EntryBlock|null $block */
+            /** @var Block|null $block */
             $block = $existing->get($section->key);
 
             if (! $block) {
-                $block = EntryBlock::query()->create([
-                    'entry_id' => $entry->id,
+                $block = Block::query()->create([
+                    'owner_type' => 'entry',
+                    'owner_id' =>  $entry->id,
                     'key' => $section->key,
                     'label' => $section->label,
                     'format' => $section->format,

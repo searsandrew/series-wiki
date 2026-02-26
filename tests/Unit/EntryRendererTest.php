@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Foundation\Auth\User as AuthenticatableUser;
+use Searsandrew\SeriesWiki\Models\Block;
 use Searsandrew\SeriesWiki\Models\Entry;
-use Searsandrew\SeriesWiki\Models\EntryBlock;
 use Searsandrew\SeriesWiki\Models\Gate;
 use Searsandrew\SeriesWiki\Models\Series;
 use Searsandrew\SeriesWiki\Models\UserWorkProgress;
@@ -52,8 +52,9 @@ it('renders safe body when locked (safe mode)', function () {
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $entry->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'history',
         'format' => 'markdown',
         'body_safe' => 'What the galaxy believes…',
@@ -107,8 +108,9 @@ it('renders full body when unlocked', function () {
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $entry->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'history',
         'format' => 'markdown',
         'body_safe' => 'What the galaxy believes…',
@@ -157,8 +159,9 @@ it('renders stub when locked_mode is stub', function () {
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $entry->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'history',
         'format' => 'markdown',
         'body_safe' => null,

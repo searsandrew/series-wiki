@@ -1,7 +1,7 @@
 <?php
 
+use Searsandrew\SeriesWiki\Models\Block;
 use Searsandrew\SeriesWiki\Models\Entry;
-use Searsandrew\SeriesWiki\Models\EntryBlock;
 use Searsandrew\SeriesWiki\Models\LinkSuggestion;
 use Searsandrew\SeriesWiki\Models\Series;
 use Searsandrew\SeriesWiki\Services\Crawler\LinkSuggestionEngine;
@@ -25,8 +25,9 @@ it('creates link suggestions when another entry title appears in block text', fu
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $source->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $source->id,
         'key' => 'overview',
         'body_full' => 'During the War Era, Battle X was decisive. Battle X changed doctrine.',
         'body_safe' => null,
@@ -69,8 +70,9 @@ it('does not suggest links to unpublished target entries', function () {
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $source->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $source->id,
         'key' => 'overview',
         'body_full' => 'Secret Thing is referenced here.',
         'body_safe' => null,
@@ -103,8 +105,9 @@ it('does not suggest links if the title is already a markdown link anchor', func
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $source->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $source->id,
         'key' => 'overview',
         'body_full' => 'Already linked: [Battle X](/wiki/battle-x). Battle X again.',
         'body_safe' => null,
@@ -138,8 +141,9 @@ it('skips processing an entry if its snapshot hash is unchanged', function () {
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $source->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $source->id,
         'key' => 'overview',
         'body_full' => 'Battle X appears once.',
         'body_safe' => null,

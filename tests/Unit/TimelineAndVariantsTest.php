@@ -2,15 +2,14 @@
 
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Foundation\Auth\User as AuthenticatableUser;
+use Searsandrew\SeriesWiki\Models\Block;
 use Searsandrew\SeriesWiki\Models\Entry;
-use Searsandrew\SeriesWiki\Models\EntryBlock;
 use Searsandrew\SeriesWiki\Models\EntryVariant;
 use Searsandrew\SeriesWiki\Models\Faction;
 use Searsandrew\SeriesWiki\Models\Gate;
 use Searsandrew\SeriesWiki\Models\Series;
 use Searsandrew\SeriesWiki\Models\TimeSlice;
 use Searsandrew\SeriesWiki\Models\UserWorkProgress;
-use Searsandrew\SeriesWiki\Models\VariantBlock;
 use Searsandrew\SeriesWiki\Models\Work;
 use Searsandrew\SeriesWiki\Services\EntryRenderer;
 use Searsandrew\SeriesWiki\Services\Timeline\YearRange;
@@ -38,8 +37,9 @@ it('treats blocks with no time tags as always relevant', function () {
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $entry->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'overview',
         'body_safe' => 'safe',
         'body_full' => 'full',
@@ -76,8 +76,9 @@ it('filters tagged blocks by year range intersection', function () {
         'status' => 'published',
     ]);
 
-    $always = EntryBlock::create([
-        'entry_id' => $entry->id,
+    $always = Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'myth',
         'body_safe' => 'myth safe',
         'body_full' => 'myth full',
@@ -85,8 +86,9 @@ it('filters tagged blocks by year range intersection', function () {
         'sort' => 0,
     ]);
 
-    $tagged = EntryBlock::create([
-        'entry_id' => $entry->id,
+    $tagged = Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'truth',
         'body_safe' => 'truth safe',
         'body_full' => 'truth full',
@@ -137,8 +139,9 @@ it('applies variant overrides by key and still respects timeline filtering', fun
     ]);
 
     // Base block
-    EntryBlock::create([
-        'entry_id' => $entry->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'overview',
         'body_safe' => 'base safe',
         'body_full' => 'base full',
@@ -147,8 +150,9 @@ it('applies variant overrides by key and still respects timeline filtering', fun
     ]);
 
     // Base tagged wartime block
-    $baseWar = EntryBlock::create([
-        'entry_id' => $entry->id,
+    $baseWar = Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'wartime_use',
         'body_safe' => 'base war safe',
         'body_full' => 'base war full',
@@ -167,8 +171,9 @@ it('applies variant overrides by key and still respects timeline filtering', fun
     ]);
 
     // Variant overrides overview
-    VariantBlock::create([
-        'variant_id' => $variant->id,
+    Block::create([
+        'owner_type' => 'variant',
+        'owner_id' => $variant->id,
         'key' => 'overview',
         'body_safe' => 'variant safe',
         'body_full' => 'variant full',
@@ -177,8 +182,9 @@ it('applies variant overrides by key and still respects timeline filtering', fun
     ]);
 
     // Variant-only wartime block (also tagged)
-    $variantWar = VariantBlock::create([
-        'variant_id' => $variant->id,
+    $variantWar = Block::create([
+        'owner_type' => 'variant',
+        'owner_id' => $variant->id,
         'key' => 'wartime_use',
         'body_safe' => 'variant war safe',
         'body_full' => 'variant war full',
@@ -227,8 +233,9 @@ it('still honors spoiler gates after variant + timeline composition', function (
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $entry->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'truth',
         'body_safe' => 'safe truth',
         'body_full' => 'full truth',

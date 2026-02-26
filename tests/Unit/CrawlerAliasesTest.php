@@ -1,8 +1,8 @@
 <?php
 
+use Searsandrew\SeriesWiki\Models\Block;
 use Searsandrew\SeriesWiki\Models\Entry;
 use Searsandrew\SeriesWiki\Models\EntryAlias;
-use Searsandrew\SeriesWiki\Models\EntryBlock;
 use Searsandrew\SeriesWiki\Models\LinkSuggestion;
 use Searsandrew\SeriesWiki\Models\Series;
 use Searsandrew\SeriesWiki\Services\Crawler\LinkSuggestionEngine;
@@ -33,8 +33,9 @@ it('suggests a link when an alias appears in text', function () {
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $source->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $source->id,
         'key' => 'overview',
         'body_full' => 'The Type 88 arrived late but turned the tide.',
         'locked_mode' => 'safe',
@@ -66,8 +67,9 @@ it('does not suggest a self link even if its title appears', function () {
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $entry->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'overview',
         'body_full' => 'Battle X is Battle X.',
         'locked_mode' => 'safe',

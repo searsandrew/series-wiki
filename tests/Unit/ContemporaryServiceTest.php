@@ -1,7 +1,7 @@
 <?php
 
+use Searsandrew\SeriesWiki\Models\Block;
 use Searsandrew\SeriesWiki\Models\Entry;
-use Searsandrew\SeriesWiki\Models\EntryBlock;
 use Searsandrew\SeriesWiki\Models\Series;
 use Searsandrew\SeriesWiki\Models\TimeSlice;
 use Searsandrew\SeriesWiki\Services\ContemporaryService;
@@ -94,8 +94,9 @@ it('infers slices from tagged entry blocks when entry has no entry-level time sl
         'status' => 'published',
     ]);
 
-    $block = EntryBlock::create([
-        'entry_id' => $source->id,
+    $block = Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $source->id,
         'key' => 'history',
         'body_safe' => 'safe',
         'body_full' => 'full',

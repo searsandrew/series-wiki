@@ -1,7 +1,7 @@
 <?php
 
+use Searsandrew\SeriesWiki\Models\Block;
 use Searsandrew\SeriesWiki\Models\Entry;
-use Searsandrew\SeriesWiki\Models\EntryBlock;
 use Searsandrew\SeriesWiki\Models\Series;
 use Searsandrew\SeriesWiki\Models\Template;
 use Searsandrew\SeriesWiki\Models\TemplateSection;
@@ -47,8 +47,9 @@ it('creates missing blocks from a template without overwriting existing blocks',
     ]);
 
     // Pre-existing overview block (custom content)
-    EntryBlock::create([
-        'entry_id' => $entry->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'overview',
         'label' => 'Overview',
         'format' => 'markdown',
@@ -65,11 +66,10 @@ it('creates missing blocks from a template without overwriting existing blocks',
     // Should create only missing (biology)
     expect($touched)->toHaveCount(1);
     expect($touched->first()->key)->toBe('biology');
-
-    $overview = EntryBlock::query()->where('entry_id', $entry->id)->where('key', 'overview')->firstOrFail();
+    $overview = Block::query()->where('owner_type', 'entry')->where('owner_id', $entry->id)->where('key', 'overview')->firstOrFail();
     expect($overview->body_full)->toBe('Custom full');
 
-    $biology = EntryBlock::query()->where('entry_id', $entry->id)->where('key', 'biology')->firstOrFail();
+    $biology = Block::query()->where('owner_type', 'entry')->where('owner_id', $entry->id)->where('key', 'biology')->firstOrFail();
     expect($biology->body_safe)->toBe('Start biology…');
 });
 
@@ -102,8 +102,9 @@ it('overwrites existing blocks when overwrite is true', function () {
         'status' => 'published',
     ]);
 
-    EntryBlock::create([
-        'entry_id' => $entry->id,
+    Block::create([
+        'owner_type' => 'entry',
+        'owner_id' => $entry->id,
         'key' => 'overview',
         'label' => 'Overview',
         'format' => 'markdown',
@@ -118,7 +119,7 @@ it('overwrites existing blocks when overwrite is true', function () {
 
     expect($touched)->toHaveCount(1);
 
-    $overview = EntryBlock::query()->where('entry_id', $entry->id)->where('key', 'overview')->firstOrFail();
+    $overview = Block::query()->where('owner_type', 'entry')->where('owner_id', $entry->id)->where('key', 'overview')->firstOrFail();
     expect($overview->body_full)->toBe('Template full');
     expect($overview->sort)->toBe(0);
 });

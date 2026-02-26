@@ -44,7 +44,9 @@ class Entry extends Model
 
     public function blocks(): HasMany
     {
-        return $this->hasMany(EntryBlock::class, 'entry_id')->orderBy('sort');
+        return $this->hasMany(\Searsandrew\SeriesWiki\Models\Block::class, 'owner_id')
+            ->where('owner_type', 'entry')
+            ->orderBy('sort');
     }
 
     public function timeSlices(): BelongsToMany

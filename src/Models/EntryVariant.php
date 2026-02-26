@@ -42,6 +42,8 @@ class EntryVariant extends Model
 
     public function blocks(): HasMany
     {
-        return $this->hasMany(VariantBlock::class, 'variant_id')->orderBy('sort');
+        return $this->hasMany(Block::class, 'owner_id')
+            ->where('owner_type', 'variant')
+            ->orderBy('sort');
     }
 }
