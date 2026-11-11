@@ -54,7 +54,12 @@ jobs:
         run: |
           composer config platform.php ${{ matrix.php }}.0
           composer require --dev "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "pestphp/pest:${{ matrix.pest }}" "pestphp/pest-plugin-laravel:${{ matrix.pest }}" --no-update --no-interaction
-          composer update --with-all-dependencies --no-interaction --no-progress --prefer-dist
+          # Laravel 11 is EOL; this exception applies only to isolated legacy compatibility tests.
+          if [ "${{ matrix.laravel }}" = "^11.0" ]; then
+            composer update --with-all-dependencies --no-interaction --no-progress --prefer-dist --no-security-blocking
+          else
+            composer update --with-all-dependencies --no-interaction --no-progress --prefer-dist
+          fi
 
       - name: Run tests
         run: ./vendor/bin/pest
