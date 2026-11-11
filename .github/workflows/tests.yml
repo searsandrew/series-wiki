@@ -8,6 +8,22 @@ on:
 jobs:
   pest:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: series_wiki_test_ci
+          MYSQL_ROOT_PASSWORD: test-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent -h 127.0.0.1 -ptest-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      SERIES_WIKI_MYSQL_DATABASE: series_wiki_test_ci
+      SERIES_WIKI_MYSQL_PASSWORD: test-password
 
     strategy:
       fail-fast: false
